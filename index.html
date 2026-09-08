@@ -108,10 +108,10 @@
   .ta-check input{width:16px;height:16px;accent-color:var(--orange);}
   #undo-btn{position:fixed;right:12px;bottom:12px;z-index:50;background:var(--card-2);color:var(--text);border:1px solid var(--orange);border-radius:999px;padding:9px 16px;font-size:.78rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5);}
   #theme-btn{position:fixed;right:12px;bottom:56px;z-index:50;background:var(--card-2);color:var(--text);border:1px solid var(--border-strong);border-radius:999px;padding:9px 13px;font-size:.85rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5);}
-  .photo-grid{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;}
+  .photo-grid{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;}
   .photo-thumb{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--border-strong);cursor:pointer;display:inline-block;background:var(--bg-2);}
   .photo-thumb img{width:100%;height:100%;object-fit:cover;}
-  .photo-thumb .x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;line-height:1;cursor:pointer;}
+  .photo-thumb .x{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.72);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:50%;width:24px;height:24px;font-size:13px;line-height:1;cursor:pointer;}
   .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:.75rem;margin:6px 0;}
   .detail-grid b{color:var(--text-dim);font-weight:600;}
   #lb-close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;z-index:5;}
@@ -482,8 +482,32 @@ function refreshPhotoThumbs(){
   const box = document.getElementById('q-thumbs');
   if(!box) return;
   box.innerHTML = pendingPhotos.length
-    ? `<div class="photo-grid">${pendingPhotos.map((p,i)=>`<span class="photo-thumb"><img src="${p.src}" alt=""/><button class="x" onclick="removePendingPhoto(${i})">✕</button></span>`).join('')}</div><p class="small-note">${pendingPhotos.length}/5 încărcate — păstrează doar cele mai bune (ex. 2): apasă ✕ pe restul.</p>`
+    ? `<div class="photo-grid">${pendingPhotos.map((p,i)=>`<span class="photo-thumb"><img src="${p.src}" alt=""/><button class="x" title="Șterge poza" onclick="removePendingPhoto(${i})">✕</button></span>`).join('')}</div><p class="small-note">${pendingPhotos.length}/5 încărcate — păstrează doar cele mai bune: apasă ✕ pe restul.</p>`
     : `<p class="small-note">0/5 poze — încarcă până la 5 capturi, apoi păstrează favoritele.</p>`;
+}
+/* poze pentru trade-uri deja salvate */
+function addPhotosToTrade(tradeId, files){
+  const t = state.trades.find(x=>String(x.id)===String(tradeId));
+  if(!t) return;
+  const room = 5 - (t.photos||[]).length;
+  if(room <= 0){ alert('Maxim 5 poze per trade.'); return; }
+  const list = Array.from(files||[]);
+  if(list.length > room) alert('Atenție: maxim 5 poze — am atașat primele ' + room + '.');
+  list.slice(0, room).forEach(f=> readPhoto(f, d=>{
+    const id = 'ph'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    putPhoto(id, d).then(()=>{
+      const tr = state.trades.find(x=>String(x.id)===String(tradeId));
+      if(tr){ tr.photos = (tr.photos||[]).concat(id); saveState(); renderTab(); }
+    });
+  }));
+}
+function removeTradePhoto(tradeId, photoId){
+  const t = state.trades.find(x=>String(x.id)===String(tradeId));
+  if(!t) return;
+  t.photos = (t.photos||[]).filter(p=>p!==photoId);
+  delPhoto(photoId);
+  saveState();
+  renderTab();
 }
 function openLightboxSrc(src){
   const d = document.createElement('div');
@@ -1316,9 +1340,13 @@ function tradeDetailHTML(t){
         <div><b>Notă:</b> ${t.note||'-'}</div><div><b>Compliance:</b> ${t.ruleCompliance||'-'}</div>
       </div>
       ${t.additionalNote?`<p class="small-note"><b>Notă suplimentară:</b> ${t.additionalNote}</p>`:''}
-      ${(t.photos&&t.photos.length) ? `<p class="small-note" style="margin:2px 0">Poze (${t.photos.length}) — atinge pentru full · pinch = zoom · tap = închide:</p>
-        <div class="photo-grid">${t.photos.map(id=>`<span class="photo-thumb"><img data-phid="${id}" alt="" onclick="openLightboxId('${id}')"/></span>`).join('')}</div>`
+      ${(t.photos&&t.photos.length) ? `<p class="small-note" style="margin:2px 0">Poze (${t.photos.length}/5) — atinge pentru full · pinch = zoom · ✕ = șterge poza:</p>
+        <div class="photo-grid">${t.photos.map(id=>`<span class="photo-thumb"><img data-phid="${id}" alt="" onclick="openLightboxId('${id}')"/><button class="x" title="Șterge poza" onclick="removeTradePhoto('${t.id}','${id}')">✕</button></span>`).join('')}</div>`
         : `<p class="small-note">Fără poze pentru acest trade.</p>`}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px">
+        <button class="btn small secondary" type="button" onclick="document.getElementById('add-photos-${t.id}').click()">📷 + Adaugă poze</button>
+        <input type="file" id="add-photos-${t.id}" accept="image/*" multiple style="display:none" onchange="addPhotosToTrade('${t.id}', this.files); this.value='';"/>
+      </div>
       <button class="btn danger" data-del="${t.id}">Delete trade</button>
     </div>`;
 }
