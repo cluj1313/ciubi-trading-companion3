@@ -1426,7 +1426,7 @@ function viewTrades(){
           return `<tr data-open="${t.id}" style="${R==null?'':R>0?'background:rgba(62,230,166,.16);':'background:rgba(251,113,133,.16);'}">
             <td>${t.date}</td><td>${t.pair}</td><td>${t.direction}</td><td>${t.setup}</td>
             <td class="${rClass(R)}">${R===null?'open':fmtR(R)}</td>
-            <td style="white-space:nowrap">${(t.photos&&t.photos.length)?'<span style="display:inline-block;margin-right:14px" title="Poze">📷'+t.photos.length+'</span>':''}<button class="link-btn" data-del="${t.id}">Delete</button></td>}">Delete</button></td>
+            <td><div style="display:flex;align-items:center;gap:16px;min-width:120px"><span style="flex:1;white-space:nowrap">${(t.photos&&t.photos.length)?'📷 '+t.photos.length:''}</span><span style="flex:1;white-space:nowrap;text-align:right"><button class="link-btn" data-del="${t.id}">Delete</button></span></div></td>>📷'+t.photos.length+'</span>':''}<button class="link-btn" data-del="${t.id}">Delete</button></td>}">Delete</button></td>
           </tr>`;
         }).join('')}
       </tbody></table></div>`}
