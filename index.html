@@ -116,6 +116,14 @@
   .detail-grid b{color:var(--text-dim);font-weight:600;}
   #lb-close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;z-index:5;}
   #lb-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#9aa4b2;font-size:11px;z-index:5;}
+  .rr-row{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px;}
+  .rr-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px;font-size:.72rem;font-weight:700;border:1px solid var(--border-strong);background:var(--bg-2);color:var(--text-dim);}
+  .rr-pill b{font-weight:800;}
+  .rr-pill.rr{border-color:var(--orange);color:var(--orange);}
+  .rr-pill.buy{border-color:var(--green);color:var(--green);}
+  .rr-pill.sell{border-color:var(--red);color:var(--red);}
+  .rr-pill.risk b{color:var(--red);}
+  .rr-pill.rew b{color:var(--green);}
 </style>
 </head>
 <body>
@@ -157,7 +165,7 @@ const HAS_WS = (typeof window.storage !== 'undefined') && window.storage && (typ
 const KEY_V3 = 'ciubi_state_v3';
 const KEY_V2 = 'ciubi_state';
 
-/* ---------------- IndexedDB pentru poze (calitate mare, fără limita de 5MB) ---------------- */
+/* ---------------- IndexedDB pentru poze ---------------- */
 let dbP = null;
 function idb(){
   if(dbP) return dbP;
@@ -268,7 +276,7 @@ function applyTheme(){
   if(mc) mc.content = state.theme==='light' ? '#f2f4f8' : '#070b14';
 }
 
-/* ---------------- load + migrare din V2 ---------------- */
+/* ---------------- load ---------------- */
 async function loadState(){
   try{
     let raw = null;
@@ -289,7 +297,6 @@ async function loadState(){
   snapshot = dataOnly();
   render();
 }
-/* mută pozele vechi (dataURL din localStorage) în IndexedDB */
 async function migratePhotosStorage(){
   let changed = false;
   for(const t of state.trades){
@@ -314,7 +321,7 @@ async function migratePhotosStorage(){
   if(changed){ saveState(false); renderTab(); hydratePhotoImgs(); }
 }
 
-/* ---------------- backup (include pozele din IndexedDB) ---------------- */
+/* ---------------- backup ---------------- */
 async function exportBackup(){
   const photoMap = {};
   for(const t of state.trades){
@@ -414,7 +421,36 @@ function calcPos(){
     : `<p class="small-note">Completează sold, risc %, SL și valoare pip.</p>`;
 }
 
-/* ---------------- POZE: upload calitate mare, max 5, păstrezi ce vrei ---------------- */
+/* ---------------- R:R live (pilule) ---------------- */
+function pipSize(pair){
+  const p=(pair||'').toUpperCase();
+  if(p.includes('JPY')) return 0.01;
+  if(p.includes('XAU')||p.includes('XAG')) return 0.1;
+  if(/(BTC|ETH|SOL|BNB)/.test(p)) return 1;
+  return 0.0001;
+}
+function updateRR(){
+  const box=document.getElementById('rr-live');
+  if(!box) return;
+  const g=id=>{ const el=document.getElementById(id); return el?parseFloat(el.value):NaN; };
+  const e=g('q-entry'), s=g('q-sl'), x=g('q-exit');
+  const pairEl=document.getElementById('q-pair');
+  const pair=pairEl?pairEl.value:'';
+  if(isNaN(e)||isNaN(s)||isNaN(x)||Math.abs(e-s)===0){ box.innerHTML=''; return; }
+  const ps=pipSize(pair);
+  const riskP=Math.abs(e-s)/ps, rewP=Math.abs(x-e)/ps;
+  const rr=Math.abs(x-e)/Math.abs(e-s);
+  const dir=x>e?'BUY':'SELL';
+  box.innerHTML =
+    `<div class="rr-row">`+
+    `<span class="rr-pill rr">R:R <b>1:${rr.toFixed(1)}</b></span>`+
+    `<span class="rr-pill ${dir==='BUY'?'buy':'sell'}">Direcție sugerată <b>${dir}</b></span>`+
+    `<span class="rr-pill risk">Risc <b>${riskP.toFixed(1)} pips</b></span>`+
+    `<span class="rr-pill rew">Recompensă <b>${rewP.toFixed(1)} pips</b></span>`+
+    `</div>`;
+}
+
+/* ---------------- POZE ---------------- */
 let pendingPhotos = [];
 function readPhoto(file, cb){
   const r = new FileReader();
@@ -1113,52 +1149,6 @@ function shieldBannerHTML(){
   return `<div class="shield-ok">🛡 ${st.msg}</div>`;
 }
 
-/* ---------------- SCAN TRADINGVIEW (OCR) ---------------- */
-let tesseractP = null;
-function loadTesseract(){
-  if(tesseractP) return tesseractP;
-  tesseractP = new Promise((res,rej)=>{
-    if(window.Tesseract) return res(window.Tesseract);
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
-    s.onload = ()=>res(window.Tesseract);
-    s.onerror = ()=>{ tesseractP = null; rej(new Error('OCR indisponibil (offline?)')); };
-    document.head.appendChild(s);
-  });
-  return tesseractP;
-}
-async function scanTV(file){
-  const st = document.getElementById('tv-scan-status');
-  const set = m=>{ if(st) st.textContent = m; };
-  set('⏳ Se încarcă motorul OCR… (prima dată durează câteva secunde, necesită internet)');
-  let T;
-  try{ T = await loadTesseract(); }catch(e){ set('⚠️ '+e.message); return; }
-  try{
-    const { data } = await T.recognize(file, 'eng', { logger:m=>{ if(m.status==='recognizing text' && st) set('⏳ OCR '+Math.round((m.progress||0)*100)+'%'); } });
-    const txt = data.text || '';
-    const found = {};
-    const re = /(target\s*2|target\s*1|entry|stop)\s*:?[^0-9\-]*([0-9]+(?:[.,][0-9]+)?)/gi;
-    let m;
-    while((m = re.exec(txt))){
-      const k = m[1].toLowerCase().replace(/\s+/g,'');
-      const v = parseFloat(m[2].replace(',','.'));
-      if(!(k in found)) found[k] = v;
-    }
-    const entry = found.entry, sl = found.stop, tp1 = found.target1, tp2 = found.target2;
-    if(entry==null || sl==null || tp1==null){ set('⚠️ Nu am detectat clar Entry/Stop/Target în imagine. Completează manual.'); return; }
-    const q = state.quickTrade;
-    q.entry = entry; q.sl = sl; q.exit = tp1;
-    q.direction = sl > entry ? 'SELL' : 'BUY';
-    const rr = Math.abs(tp1-entry) / (Math.abs(entry-sl) || 1);
-    const sym = (txt.toUpperCase().match(/\b([A-Z]{6}|XAUUSD|XAGUSD|BTCUSD|ETHUSD|SOLUSD|BNBUSD)\b/) || [])[1];
-    if(sym) q.pair = sym;
-    q.additionalNote = (q.additionalNote ? q.additionalNote+' · ' : '') + `TV scan: TP1 ${tp1}${tp2?' / TP2 '+tp2:''} · R:R 1:${rr.toFixed(2)}`;
-    saveState();
-    renderTab();
-    set(`✅ Detectat: Entry ${entry} · SL ${sl} · TP1 ${tp1}${tp2?' · TP2 '+tp2:''} · R:R 1:${rr.toFixed(2)} · ${q.direction}`);
-  }catch(e){ set('⚠️ Scan eșuat: '+e.message); }
-}
-
 /* ---------------- RENDER principal ---------------- */
 let openTradeId = null;
 
@@ -1258,7 +1248,7 @@ function viewDashboard(){
   `;
 }
 
-/* ---------------- PLAN: checklist + reguli custom + reorder ---------------- */
+/* ---------------- PLAN ---------------- */
 function planItemById(id){ return state.plan.items.find(it=>it.id===id); }
 function moveItemBefore(dragId, targetId){
   const arr = state.plan.items;
@@ -1284,7 +1274,7 @@ function viewPlan(){
   return `
     <div class="card">
       <div class="card-head"><h2>Pre-Trade Plan</h2><span class="pill ${all&&done===all?'good':'on'}">${all&&done===all?'READY':done+'/'+all}</span></div>
-      <p class="card-sub">Checklist SMC + regulile tale. Reordonează cu ⋮⋮ (drag) sau ▲▼.</p>
+      <p class="card-sub">Checklist SMC + regulile tale. Reordonează cu ⋮ (drag) sau ▲▼.</p>
     </div>
     <div class="step open">
       <div class="step-head">
@@ -1368,11 +1358,6 @@ function viewTrades(){
 
     <div class="card">
       <div class="card-head"><h2>Add paper trade</h2></div>
-      <div class="field stacked"><label>Scan TradingView</label>
-        <button class="btn small secondary" id="tv-scan-btn" type="button">📸 Scan TV (Entry/SL/TP + R:R)</button>
-        <input type="file" id="tv-scan-file" accept="image/*" style="display:none"/>
-      </div>
-      <p class="small-note" id="tv-scan-status" style="margin:0 0 6px">Optional: încarcă un screenshot cu poziția (Long/Short Position tool) și completez automat Entry, SL, TP1, direcția și R:R.</p>
       <div class="field"><label>Pair</label>
         <input id="q-pair" list="pairs-list" placeholder="scrie orice pair sau alege din sugestii" value="${q.pair||''}"/>
       </div>
@@ -1384,6 +1369,7 @@ function viewTrades(){
       <div class="field"><label>Entry</label><input id="q-entry" type="number" step="any" value="${q.entry}"/></div>
       <div class="field"><label>Stop loss</label><input id="q-sl" type="number" step="any" value="${q.sl}"/></div>
       <div class="field"><label>Exit</label><input id="q-exit" type="number" step="any" value="${q.exit}"/></div>
+      <div id="rr-live"></div>
       <div class="field"><label>Result R (opt.)</label><input id="q-resultr" type="number" step="any" placeholder="Auto from prices" value="${q.resultR}"/></div>
       <div class="field"><label>Trade note</label>
         <select id="q-note">${['Clean trade','Revenge trade','FOMO entry','Overleveraged','Moved stop','Cut winner early','Ignored plan','Perfect execution'].map(v=>`<option ${q.note===v?'selected':''}>${v}</option>`).join('')}</select>
@@ -1698,13 +1684,6 @@ function bindTabContentEvents(){
     const ph = document.getElementById('q-photo');
     if(ph) ph.onchange = ()=>{ addPendingFiles(ph.files); ph.value=''; };
 
-    const tvBtn = document.getElementById('tv-scan-btn');
-    const tvFile = document.getElementById('tv-scan-file');
-    if(tvBtn && tvFile){
-      tvBtn.onclick = ()=>tvFile.click();
-      tvFile.onchange = ()=>{ if(tvFile.files && tvFile.files[0]) scanTV(tvFile.files[0]); tvFile.value=''; };
-    }
-
     live('q-direction', v=>state.quickTrade.direction=v);
     live('q-htf', v=>state.quickTrade.htfBias=v);
     live('q-date', v=>state.quickTrade.date=v);
@@ -1716,6 +1695,12 @@ function bindTabContentEvents(){
     live('q-note', v=>state.quickTrade.note=v);
     live('q-compliance', v=>state.quickTrade.ruleCompliance=v);
     live('q-session', v=>state.quickTrade.session=v);
+
+    ['q-entry','q-sl','q-exit','q-pair'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.addEventListener('input', updateRR);
+    });
+    updateRR();
 
     const addBtn = document.getElementById('add-trade-btn');
     if(addBtn) addBtn.onclick = async ()=>{
