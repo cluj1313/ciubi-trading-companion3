@@ -485,7 +485,6 @@ function refreshPhotoThumbs(){
     ? `<div class="photo-grid">${pendingPhotos.map((p,i)=>`<span class="photo-thumb"><img src="${p.src}" alt=""/><button class="x" title="Șterge poza" onclick="removePendingPhoto(${i})">✕</button></span>`).join('')}</div><p class="small-note">${pendingPhotos.length}/5 încărcate — păstrează doar cele mai bune: apasă ✕ pe restul.</p>`
     : `<p class="small-note">0/5 poze — încarcă până la 5 capturi, apoi păstrează favoritele.</p>`;
 }
-/* poze pentru trade-uri deja salvate */
 function addPhotosToTrade(tradeId, files){
   const t = state.trades.find(x=>String(x.id)===String(tradeId));
   if(!t) return;
@@ -1426,7 +1425,7 @@ function viewTrades(){
           return `<tr data-open="${t.id}" style="${R==null?'':R>0?'background:rgba(62,230,166,.16);':'background:rgba(251,113,133,.16);'}">
             <td>${t.date}</td><td>${t.pair}</td><td>${t.direction}</td><td>${t.setup}</td>
             <td class="${rClass(R)}">${R===null?'open':fmtR(R)}</td>
-            <td><div style="display:flex;align-items:center;gap:16px;min-width:120px"><span style="flex:1;white-space:nowrap">${(t.photos&&t.photos.length)?'📷 '+t.photos.length:''}</span><span style="flex:1;white-space:nowrap;text-align:right"><button class="link-btn" data-del="${t.id}">Delete</button></span></div></td>>📷'+t.photos.length+'</span>':''}<button class="link-btn" data-del="${t.id}">Delete</button></td>}">Delete</button></td>
+            <td><div style="display:flex;align-items:center;gap:16px;min-width:120px"><span style="flex:1;text-align:center;white-space:nowrap">${(t.photos&&t.photos.length)?'📷 '+t.photos.length:''}</span><span style="flex:1;text-align:center;white-space:nowrap"><button class="link-btn" data-del="${t.id}">Delete</button></span></div></td>
           </tr>`;
         }).join('')}
       </tbody></table></div>`}
