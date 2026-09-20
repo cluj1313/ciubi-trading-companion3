@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ciubi Trading Companion V3</title>
+<title>Ciubi Trading Companion V4</title>
 <link rel="manifest" href="manifest.webmanifest">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#070b14">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -124,6 +125,21 @@
   .rr-pill.sell{border-color:var(--red);color:var(--red);}
   .rr-pill.risk b{color:var(--red);}
   .rr-pill.rew b{color:var(--green);}
+
+  .style-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:6px;overflow:hidden;}
+  .style-panel.open{border-color:var(--orange);}
+  .style-head{display:flex;align-items:center;gap:8px;padding:10px 12px;width:100%;background:none;border:none;color:inherit;text-align:left;cursor:pointer;font-family:inherit;}
+  .style-head .chev{color:var(--orange);font-size:.85rem;width:14px;flex:0 0 14px;transition:transform .15s;}
+  .style-panel.open .chev{transform:rotate(90deg);}
+  .style-head .title{font-weight:700;font-size:.85rem;flex:1;min-width:0;}
+  .style-tools{display:flex;gap:4px;align-items:center;}
+  .app-ad{display:block;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:8px;text-decoration:none;color:inherit;background:var(--bg-2);}
+  .app-ad img{width:100%;aspect-ratio:1200/630;object-fit:cover;display:block;background:var(--card-2);}
+  .app-ad .meta{display:flex;align-items:center;gap:8px;padding:8px 12px 10px;}
+  .app-ad .kicker{font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--orange);}
+  .app-ad .aname{display:block;font-weight:800;font-size:.82rem;}
+  .app-ad .blurb{display:block;font-size:.68rem;color:var(--text-dim);margin-top:2px;line-height:1.35;}
+  .app-ad .go{margin-left:auto;font-size:.68rem;font-weight:700;color:var(--orange);white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -138,13 +154,68 @@ const CHECKLIST_ITEMS = [
   '50 EMA weak pullback -2',
   'Engulfing entry'
 ];
+
+const TRADE_STYLES = [
+  {id:'style-snd', name:'Supply and Defend', items:[
+    'Zona de supply/demand e marcată pe HTF (4H / 1H)',
+    'Originul zonei e un departure impulsiv, nu chop',
+    'Zona e fresh — unmitigated, nu e luată full',
+    'Price a revenit în zonă (proximal) și o apără',
+    'Confirmare LTF: rejection, CHoCH sau engulfing',
+    'Invalidare dincolo de distal; R:R e acceptabil'
+  ]},
+  {id:'style-sr', name:'Support and Resistance', items:[
+    'Nivel HTF sau PDH/PDL / sesiune — nu un micro-nivel',
+    'Minim 2 testări clare (wicks sau close-uri)',
+    'Nivelul nu e broken recent',
+    'Rejection vizibilă la nivel',
+    'Confluență: round number, MA sau zonă',
+    'SL dincolo de nivel, țintă la următorul S/R'
+  ]},
+  {id:'style-ob', name:'OB', items:[
+    'OB = ultima lumânare opusă înainte de displacement',
+    'Displacement cu BOS / CHoCH după OB',
+    'OB unmitigated (nu e luat full)',
+    'Bias HTF aliniat cu direcția OB',
+    'Entry la open sau 50% din OB',
+    'SL dincolo de extrema OB'
+  ]},
+  {id:'style-fvg', name:'FVG', items:[
+    'Imbalance de 3 lumânări (gap wick-to-wick)',
+    'FVG neatins / parțial — nu e filled',
+    'FVG-ul e în direcția bias-ului HTF',
+    'Price a ajuns la CE (50%) sau la edge',
+    'Confirmare de respingere în gap',
+    'SL dincolo de extrema FVG'
+  ]},
+  {id:'style-ma', name:'Moving Averages', items:[
+    'Price vs 200 EMA — bias clar ↗ sau ↘',
+    '50 EMA are slope, nu e flat',
+    'Pullback la 50 EMA, nu break de partea cealaltă',
+    'Stack 20 / 50 / 200 în direcția trade-ului',
+    'Rejection candle pe MA',
+    'Nu intra dacă MA-urile sunt încurcate (range)'
+  ]}
+];
+function defaultStyleLists(){
+  return TRADE_STYLES.map(s=>({
+    id:s.id, name:s.name,
+    items:s.items.map((txt,i)=>({id:s.id+'-'+i, txt, done:false, custom:false}))
+  }));
+}
+const SISTER_APPS = [
+  {id:'aprozar', name:'Aprozar Românesc', kicker:'Hrană', tagline:'Piața satului, fără intermediari. De la grădină, pe masă.', href:'https://ever-prism-birch-garden.grok.me/', image:'apps/aprozar.jpg'},
+  {id:'servicii', name:'Servicii Locale', kicker:'Meserii', tagline:'Meșteri verificați, după oraș. Nu prin noroc pe grupuri.', href:'https://servicii-locale3.grok.me/', image:'apps/servicii.jpg'},
+  {id:'produse', name:'Produse Românești', kicker:'Fabricat aici', tagline:'De la zacusca din cămară la uneltele din atelier.', href:'https://bloom-falcon-zephyr-atlas.grok.me/', image:'apps/produse.jpg'}
+];
+
 const SETUPS = ['A+','A','B','C'];
 const SESSIONS = ['Asia','London','New York','London/NY overlap'];
 
 const DEFAULT_STATE = {
   tab: 'dashboard',
   theme: 'dark',
-  plan: { items: CHECKLIST_ITEMS.map((txt,i)=>({id:'f'+i, txt, done:false, custom:false})) },
+  plan: { lists: defaultStyleLists(), openIds: ['style-snd'] },
   trades: [],
   alerts: [],
   nextFocus: '',
@@ -225,13 +296,24 @@ function saveState(withUndo){
   updateUndoBtn();
 }
 function guardState(){
-  if(!state.plan) state.plan = JSON.parse(JSON.stringify(DEFAULT_STATE.plan));
-  if(!Array.isArray(state.plan.items)){
-    const old = Array.isArray(state.plan.checklist) ? state.plan.checklist : [];
-    state.plan.items = CHECKLIST_ITEMS.map((txt,i)=>({id:'f'+i, txt, done:!!old[i], custom:false}));
+  if(!state.plan) state.plan = {};
+  if(!Array.isArray(state.plan.lists) || !state.plan.lists.length){
+    const oldItems = Array.isArray(state.plan.items) ? state.plan.items : [];
+    const customs = oldItems.filter(it=>it && it.custom && it.txt);
+    state.plan.lists = defaultStyleLists();
+    if(customs.length){
+      state.plan.lists.push({id:'style-mine', name:'Checklist-ul meu', items:customs.map((it,i)=>({id:it.id||('mine'+i), txt:it.txt, done:!!it.done, custom:true}))});
+    }
+    state.plan.openIds = state.plan.lists[0] ? [state.plan.lists[0].id] : [];
   }
-  state.plan.items = state.plan.items.filter(it=>it && it.txt);
-  state.plan.items.forEach((it,i)=>{ if(!it.id) it.id='x'+i; if(typeof it.done!=='boolean') it.done=false; if(typeof it.custom!=='boolean') it.custom=false; });
+  if(!Array.isArray(state.plan.openIds)) state.plan.openIds = [];
+  state.plan.lists.forEach((list,li)=>{
+    if(!list.id) list.id = 'list'+li;
+    if(!list.name) list.name = 'Stil '+(li+1);
+    if(!Array.isArray(list.items)) list.items = [];
+    list.items = list.items.filter(it=>it && it.txt);
+    list.items.forEach((it,i)=>{ if(!it.id) it.id=list.id+'-'+i; if(typeof it.done!=='boolean') it.done=false; });
+  });
   if(!state.trades) state.trades = [];
   state.trades.forEach(t=>{ if(!Array.isArray(t.photos)) t.photos = []; });
   if(!state.alerts) state.alerts = [];
@@ -1179,7 +1261,7 @@ function render(){
   const app = document.getElementById('app');
   app.innerHTML = `
     <header class="top">
-      <h1 class="logo">CIUBI <span>TRADING COMPANION</span> <span class="pill on">V3</span></h1>
+      <h1 class="logo">CIUBI <span>TRADING COMPANION</span> <span class="pill on">V4</span></h1>
     </header>
     <nav class="tabs">
       ${tabBtn('dashboard','Dashboard')}
@@ -1191,7 +1273,7 @@ function render(){
     </nav>
     <hr class="divider"/>
     <div id="tab-content"></div>
-    <p class="footer-note">Ciubi · Trading Companion V3 — temă light/dark</p>
+    <p class="footer-note">Ciubi · Trading Companion V4 — temă light/dark · datele stau pe dispozitiv</p>
     <button id="theme-btn" title="Schimbă tema" onclick="toggleTheme()">🌙</button>
     <button id="undo-btn" title="Anulează ultima modificare (pas cu pas)" onclick="doUndo()">↩ Undo (0)</button>
   `;
@@ -1272,18 +1354,11 @@ function viewDashboard(){
 }
 
 /* ---------------- PLAN ---------------- */
-function planItemById(id){ return state.plan.items.find(it=>it.id===id); }
-function moveItemBefore(dragId, targetId){
-  const arr = state.plan.items;
-  const di = arr.findIndex(it=>it.id===dragId);
-  if(di<0) return;
-  const [it] = arr.splice(di,1);
-  const ti = arr.findIndex(x=>x.id===targetId);
-  arr.splice(ti,0,it);
-  saveState(); renderTab();
-}
-function moveItemBy(id, dir){
-  const arr = state.plan.items;
+function planList(id){ return (state.plan.lists||[]).find(l=>l.id===id); }
+function planItem(listId, id){ const l=planList(listId); return l ? l.items.find(it=>it.id===id) : null; }
+function moveItemBy(listId, id, dir){
+  const l = planList(listId); if(!l) return;
+  const arr = l.items;
   const i = arr.findIndex(it=>it.id===id);
   const j = i+dir;
   if(i<0 || j<0 || j>=arr.length) return;
@@ -1291,37 +1366,52 @@ function moveItemBy(id, dir){
   saveState(); renderTab();
 }
 function viewPlan(){
-  const items = state.plan.items;
-  const done = items.filter(i=>i.done).length;
-  const all = items.length;
+  const lists = state.plan.lists || [];
+  const openIds = state.plan.openIds || [];
+  const done = lists.reduce((n,l)=>n+l.items.filter(i=>i.done).length,0);
+  const all = lists.reduce((n,l)=>n+l.items.length,0);
   return `
     <div class="card">
-      <div class="card-head"><h2>Pre-Trade Plan</h2><span class="pill ${all&&done===all?'good':'on'}">${all&&done===all?'READY':done+'/'+all}</span></div>
-      <p class="card-sub">Checklist SMC + regulile tale. Reordonează cu ⋮ (drag) sau ▲▼.</p>
-    </div>
-    <div class="step open">
-      <div class="step-head">
-        <div class="left"><span class="num">01</span><span class="title">Checklist</span></div>
-        <span class="status open">${done}/${all}</span>
-      </div>
-      <div class="step-body">
-        ${items.map((it,idx)=>`
-          <div class="checklist-item ${it.done?'checked':''}" draggable="true" data-item="${it.id}">
-            <span class="drag-handle" title="Trage pentru reordonare">⋮</span>
-            <div class="checkbox ${it.done?'checked':''}" data-check="${it.id}">${it.done?'✓':''}</div>
-            <span class="txt">${it.txt}</span>
-            <button class="mini-btn" data-up="${it.id}" ${idx===0?'disabled':''}>▲</button>
-            <button class="mini-btn" data-down="${it.id}" ${idx===all-1?'disabled':''}>▼</button>
-            ${it.custom?`<button class="mini-btn del" data-delitem="${it.id}" title="Șterge regula">✕</button>`:''}
-          </div>`).join('')}
-        <div class="field" style="margin-top:10px">
-          <input id="new-item" placeholder="Regula ta nouă (ex. FVG neumplut pe LTF)…"/>
-          <button class="btn small" id="add-item-btn">+ Adaugă</button>
-        </div>
-        <p class="small-note">Regulile tale se adaugă jos. Câmpul rămâne liber pentru următoarea regulă.</p>
-        <button class="btn" id="reset-checklist-btn" style="margin-top:8px">Resetează checklist</button>
+      <div class="card-head"><h2>Plan de trade</h2><span class="pill ${all&&done===all?'good':'on'}">${all&&done===all?'READY':done+'/'+all}</span></div>
+      <p class="card-sub">Cinci stiluri. Deschizi unul, bifezi condițiile, le editezi. Totul rămâne pe telefon.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn small secondary" id="add-style-btn">+ Stil nou</button>
+        <button class="btn small secondary" id="reset-all-checks">Golește bifele</button>
       </div>
     </div>
+    ${lists.map((list, li)=>{
+      const open = openIds.includes(list.id);
+      const d = list.items.filter(i=>i.done).length;
+      const n = list.items.length;
+      return `
+      <div class="style-panel ${open?'open':''}">
+        <button class="style-head" data-toggle-list="${list.id}" aria-expanded="${open}">
+          <span class="chev">▶</span>
+          <span class="title">${list.name}</span>
+          <span class="status ${open?'open':''}">${d}/${n}</span>
+        </button>
+        ${open?`
+        <div class="step-body">
+          <div class="style-tools" style="margin:0 0 8px">
+            <button class="mini-btn" data-renlist="${list.id}">redenumește</button>
+            <button class="mini-btn" data-resetlist="${list.id}">golește bifele</button>
+            <button class="mini-btn del" data-dellist="${list.id}">șterge stilul</button>
+          </div>
+          ${list.items.map((it,idx)=>`
+            <div class="checklist-item ${it.done?'checked':''}">
+              <div class="checkbox ${it.done?'checked':''}" data-list="${list.id}" data-check="${it.id}">${it.done?'✓':''}</div>
+              <input class="txt" data-renitem="${it.id}" data-list="${list.id}" value="${(it.txt||'').replace(/"/g,'"')}" style="flex:1;background:transparent;border:none;color:inherit;font:inherit;padding:0"/>
+              <button class="mini-btn" data-list="${list.id}" data-up="${it.id}" ${idx===0?'disabled':''}>▲</button>
+              <button class="mini-btn" data-list="${list.id}" data-down="${it.id}" ${idx===n-1?'disabled':''}>▼</button>
+              <button class="mini-btn del" data-list="${list.id}" data-delitem="${it.id}">✕</button>
+            </div>`).join('')}
+          <div class="field" style="margin-top:10px">
+            <input id="new-item-${list.id}" placeholder="Condiție nouă…"/>
+            <button class="btn small" data-additem="${list.id}">+ Adaugă</button>
+          </div>
+        </div>`:''}
+      </div>`;
+    }).join('')}
   `;
 }
 
@@ -1588,6 +1678,23 @@ function viewImprove(){
       <div class="field stacked"><label>Next focus</label><textarea id="next-focus" placeholder="Care este singurul comportament pe care vrei sa-l imbunatatesti acum?">${state.nextFocus||''}</textarea></div>
       <button class="btn" id="save-focus-btn">Save focus</button>
     </div>
+    <div class="card">
+      <div class="card-head"><h2>Ecosistemul Ciubi</h2></div>
+      <p class="card-sub">Aceeași familie: hrană de grădină, meserii lângă tine, marfă fabricată în țară.</p>
+      ${SISTER_APPS.map(app=>`
+        <a class="app-ad" href="${app.href}" target="_blank" rel="noopener noreferrer">
+          <img src="${app.image}" alt="${app.name}" width="960" height="504"/>
+          <span class="meta">
+            <span>
+              <span class="kicker">${app.kicker}</span>
+              <span class="aname">${app.name}</span>
+              <span class="blurb">${app.tagline}</span>
+            </span>
+            <span class="go">Deschide →</span>
+          </span>
+        </a>`).join('')}
+      <p class="small-note">Linkurile se deschid în tab nou. Trading Companion rămâne aici, pe dispozitivul tău.</p>
+    </div>
   `;
 }
 
@@ -1662,46 +1769,85 @@ function bindTabContentEvents(){
   });
 
   if(state.tab==='plan'){
-    document.querySelectorAll('[data-check]').forEach(el=>{
+    document.querySelectorAll('[data-toggle-list]').forEach(el=>{
       el.onclick = ()=>{
-        const it = planItemById(el.dataset.check);
-        if(!it) return;
-        it.done = !it.done;
-        saveState();
-        renderTab();
+        const id = el.dataset.toggleList;
+        const open = state.plan.openIds || [];
+        state.plan.openIds = open.includes(id) ? open.filter(x=>x!==id) : open.concat(id);
+        saveState(false); renderTab();
       };
     });
-    document.querySelectorAll('[data-up]').forEach(el=>{ el.onclick = ()=>moveItemBy(el.dataset.up, -1); });
-    document.querySelectorAll('[data-down]').forEach(el=>{ el.onclick = ()=>moveItemBy(el.dataset.down, +1); });
-    document.querySelectorAll('[data-delitem]').forEach(el=>{
+    document.querySelectorAll('[data-check]').forEach(el=>{
       el.onclick = ()=>{
-        state.plan.items = state.plan.items.filter(it=>it.id!==el.dataset.delitem);
+        const it = planItem(el.dataset.list, el.dataset.check);
+        if(!it) return;
+        it.done = !it.done;
         saveState(); renderTab();
       };
     });
-    const ab = document.getElementById('add-item-btn');
-    if(ab) ab.onclick = ()=>{
-      const inp = document.getElementById('new-item');
-      const v = (inp.value||'').trim();
-      if(!v){ alert('Scrie mai întâi regula.'); return; }
-      state.plan.items.push({id:'c'+Date.now(), txt:v, done:false, custom:true});
-      saveState(); renderTab();
-      const ni = document.getElementById('new-item');
-      if(ni) ni.focus();
-    };
-    const rb = document.getElementById('reset-checklist-btn');
-    if(rb) rb.onclick = ()=>{ state.plan.items.forEach(it=>it.done=false); saveState(); renderTab(); };
-    let dragId = null;
-    document.querySelectorAll('.checklist-item[data-item]').forEach(row=>{
-      row.addEventListener('dragstart', ()=>{ dragId = row.dataset.item; });
-      row.addEventListener('dragover', e=>{ e.preventDefault(); });
-      row.addEventListener('drop', e=>{
-        e.preventDefault();
-        const target = row.dataset.item;
-        if(dragId && target && dragId!==target) moveItemBefore(dragId, target);
-        dragId = null;
-      });
+    document.querySelectorAll('[data-up]').forEach(el=>{ el.onclick = ()=>moveItemBy(el.dataset.list, el.dataset.up, -1); });
+    document.querySelectorAll('[data-down]').forEach(el=>{ el.onclick = ()=>moveItemBy(el.dataset.list, el.dataset.down, +1); });
+    document.querySelectorAll('[data-delitem]').forEach(el=>{
+      el.onclick = ()=>{
+        const l = planList(el.dataset.list); if(!l) return;
+        l.items = l.items.filter(it=>it.id!==el.dataset.delitem);
+        saveState(); renderTab();
+      };
     });
+    document.querySelectorAll('[data-renitem]').forEach(el=>{
+      el.onchange = ()=>{
+        const it = planItem(el.dataset.list, el.dataset.renitem);
+        if(!it) return;
+        const v = (el.value||'').trim();
+        if(v) it.txt = v;
+        saveState();
+      };
+    });
+    document.querySelectorAll('[data-additem]').forEach(el=>{
+      el.onclick = ()=>{
+        const id = el.dataset.additem;
+        const l = planList(id); if(!l) return;
+        const inp = document.getElementById('new-item-'+id);
+        const v = (inp && inp.value||'').trim();
+        if(!v){ alert('Scrie mai întâi condiția.'); return; }
+        l.items.push({id:'c'+Date.now(), txt:v, done:false, custom:true});
+        saveState(); renderTab();
+      };
+    });
+    document.querySelectorAll('[data-resetlist]').forEach(el=>{
+      el.onclick = (e)=>{ e.stopPropagation(); const l=planList(el.dataset.resetlist); if(!l) return; l.items.forEach(it=>it.done=false); saveState(); renderTab(); };
+    });
+    document.querySelectorAll('[data-dellist]').forEach(el=>{
+      el.onclick = (e)=>{
+        e.stopPropagation();
+        if(!confirm('Ștergi stilul ăsta?')) return;
+        state.plan.lists = state.plan.lists.filter(l=>l.id!==el.dataset.dellist);
+        state.plan.openIds = (state.plan.openIds||[]).filter(id=>id!==el.dataset.dellist);
+        saveState(); renderTab();
+      };
+    });
+    document.querySelectorAll('[data-renlist]').forEach(el=>{
+      el.onclick = (e)=>{
+        e.stopPropagation();
+        const l = planList(el.dataset.renlist); if(!l) return;
+        const v = prompt('Numele stilului', l.name);
+        if(v && v.trim()){ l.name = v.trim(); saveState(); renderTab(); }
+      };
+    });
+    const asb = document.getElementById('add-style-btn');
+    if(asb) asb.onclick = ()=>{
+      const name = prompt('Numele stilului nou', 'Stil nou');
+      if(!name || !name.trim()) return;
+      const id = 'style-'+Date.now();
+      state.plan.lists.push({id, name:name.trim(), items:[]});
+      state.plan.openIds = (state.plan.openIds||[]).concat(id);
+      saveState(); renderTab();
+    };
+    const rac = document.getElementById('reset-all-checks');
+    if(rac) rac.onclick = ()=>{
+      state.plan.lists.forEach(l=>l.items.forEach(it=>it.done=false));
+      saveState(); renderTab();
+    };
   }
 
   if(state.tab==='trades'){
@@ -1850,7 +1996,7 @@ setInterval(checkTimeAlerts, 30000);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=4').catch(()=>{});
   });
 }
 </script>
