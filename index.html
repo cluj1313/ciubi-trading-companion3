@@ -133,11 +133,11 @@
   .style-panel.open .chev{transform:rotate(90deg);}
   .style-head .title{font-weight:700;font-size:.85rem;flex:1;min-width:0;}
   .style-tools{display:flex;gap:4px;align-items:center;}
-  .app-ad{display:block;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:8px;text-decoration:none;color:inherit;background:var(--bg-2);}
-  .app-ad img{width:100%;aspect-ratio:1200/630;object-fit:cover;display:block;background:var(--card-2);}
-  .app-ad .meta{display:flex;align-items:center;gap:8px;padding:8px 12px 10px;}
+  .app-ad{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:12px;margin-bottom:6px;text-decoration:none;color:inherit;background:var(--bg-2);}
+  .app-ad img{width:88px;height:52px;object-fit:cover;border-radius:8px;flex:0 0 88px;background:var(--card-2);}
+  .app-ad .meta{display:flex;align-items:center;gap:8px;padding:0;flex:1;min-width:0;}
   .app-ad .kicker{font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--orange);}
-  .app-ad .aname{display:block;font-weight:800;font-size:.82rem;}
+  .app-ad .aname{display:block;font-weight:800;font-size:.8rem;}
   .app-ad .blurb{display:block;font-size:.68rem;color:var(--text-dim);margin-top:2px;line-height:1.35;}
   .app-ad .go{margin-left:auto;font-size:.68rem;font-weight:700;color:var(--orange);white-space:nowrap;}
 </style>
@@ -1683,7 +1683,7 @@ function viewImprove(){
       <p class="card-sub">Aceeași familie: hrană de grădină, meserii lângă tine, marfă fabricată în țară.</p>
       ${SISTER_APPS.map(app=>`
         <a class="app-ad" href="${app.href}" target="_blank" rel="noopener noreferrer">
-          <img src="${app.image}" alt="${app.name}" width="960" height="504"/>
+          <img src="${app.image}" alt="" width="88" height="52"/>
           <span class="meta">
             <span>
               <span class="kicker">${app.kicker}</span>
@@ -1996,7 +1996,7 @@ setInterval(checkTimeAlerts, 30000);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js?v=4').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=5').catch(()=>{});
   });
 }
 </script>

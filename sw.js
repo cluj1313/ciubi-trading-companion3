@@ -1,4 +1,4 @@
-const CACHE = 'ciubi-v4-1';
+const CACHE = 'ciubi-v4-2';
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(
